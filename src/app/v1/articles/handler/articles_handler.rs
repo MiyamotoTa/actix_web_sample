@@ -1,5 +1,5 @@
+use crate::app::v1::articles::dto::article_response::ArticleResponse;
 use actix_web::{web, HttpRequest, Responder};
-use serde::Serialize;
 
 pub async fn index(req: HttpRequest) -> impl Responder {
     let article1 = ArticleResponse {
@@ -12,10 +12,4 @@ pub async fn index(req: HttpRequest) -> impl Responder {
     };
     let articles = [article1, article2];
     web::Json(articles)
-}
-
-#[derive(Serialize)]
-struct ArticleResponse {
-    title: String,
-    author_name: String,
 }
