@@ -1,6 +1,6 @@
 use actix_web::web;
 
-use crate::app::handlers::articles::articles_handler;
+use crate::app::v1::articles::handler::articles_handler;
 
 pub fn routes(app: &mut web::ServiceConfig) {
     app.service(
