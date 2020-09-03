@@ -1,7 +1,7 @@
 use actix_web::{App, HttpServer};
 
-mod handlers;
 mod routes;
+mod v1;
 
 pub async fn run() -> std::io::Result<()> {
     HttpServer::new(|| App::new().configure(routes::routes))

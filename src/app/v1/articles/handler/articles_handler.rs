@@ -3,7 +3,7 @@ use serde::Serialize;
 
 pub async fn index(req: HttpRequest) -> impl Responder {
     let article1 = ArticleResponse {
-        title: "title1".to_string(),
+        title: "title11".to_string(),
         author_name: "author_name1".to_string(),
     };
     let article2 = ArticleResponse {
