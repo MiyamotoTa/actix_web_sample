@@ -4,6 +4,20 @@ actix_web_sample
 # Overview
 actix-web sample
 
+## Middleware
+
+### Logging
+アクセスログをロギングする設定を [app/mod.rs](./src/app/mod.rs) に追加。
+
+```rust
+env_logger::from_env(Env::default().default_filter_or("info")).init();
+
+HttpServer::new(|| App::new().wrap(Logger::default()).configure(routes::routes))
+    .bind("127.0.0.1:8088")?
+    .run()
+    .await
+``` 
+
 ## Endpoints
 
 ### [[GET] /api/articles](./src/app/v1/articles/handler/articles_handler.rs)
