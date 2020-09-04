@@ -1,1 +1,1 @@
-pub mod article_response;
+pub(crate) mod article_response;

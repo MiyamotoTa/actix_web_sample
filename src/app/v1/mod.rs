@@ -1,1 +1,1 @@
-pub mod articles;
+pub(crate) mod articles;
