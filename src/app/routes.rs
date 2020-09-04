@@ -2,7 +2,7 @@ use actix_web::web;
 
 use crate::app::v1::articles::handler::articles_handler;
 
-pub fn routes(app: &mut web::ServiceConfig) {
+pub(crate) fn routes(app: &mut web::ServiceConfig) {
     app.service(
         web::scope("/api")
             // articles
