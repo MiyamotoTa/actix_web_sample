@@ -18,6 +18,17 @@ HttpServer::new(|| App::new().wrap(Logger::default()).configure(routes::routes))
     .await
 ``` 
 
+### NormalizePath
+リクエストパスの正規化処理を [app/mod.rs](./src/app/mod.rs) に追加。
+Trailing slash なしに寄せたい場合は自作する必要がありそう。
+
+```rust
+App::new()
+    .wrap(Logger::default())
+    .configure(routes::routes)
+    .wrap(middleware::NormalizePath)
+```
+
 ## Endpoints
 
 ### [[GET] /api/articles](./src/app/v1/articles/handler/articles_handler.rs)
