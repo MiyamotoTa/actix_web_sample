@@ -29,6 +29,21 @@ App::new()
     .wrap(middleware::NormalizePath)
 ```
 
+### Custom 404
+
+Custom 404は [app/error/not_found.rs](./src/app/error/not_found.rs) にて実装。
+
+```shell script
+curl --location --request GET 'http://127.0.0.1:8088/not_found'
+```
+
+```json
+{
+    "status": 404,
+    "message": "The requested `[GET] /not_found/` was not found."
+}
+```
+
 ## Endpoints
 
 ### [[GET] /api/articles](./src/app/v1/articles/handler/articles_handler.rs)
