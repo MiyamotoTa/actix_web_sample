@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  actix_web_sample_db:
+    image: "mysql:5.7"
+    container_name: ${MYSQL_CONTAINER_NAME}
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - ./mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d/
+      - ./mysql/conf.d:/etc/mysql/conf.d
+    ports:
+      - "13306:3306"
