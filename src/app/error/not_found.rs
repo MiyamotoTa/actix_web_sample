@@ -1,7 +1,7 @@
-use crate::app::error::error_message::ErrorMessage;
-use actix_web::{Error, HttpRequest, HttpResponse, Responder};
-use futures::future::{ready, Ready};
-use http::StatusCode;
+use actix_web::{Error, HttpRequest, HttpResponse, Responder, ResponseError};
+use futures::future::Ready;
+
+use crate::app::error::error::AppError;
 
 pub(crate) async fn handler(req: HttpRequest) -> impl Responder {
     let message = format!(
@@ -9,22 +9,14 @@ pub(crate) async fn handler(req: HttpRequest) -> impl Responder {
         req.method(),
         req.uri().to_string()
     );
-    ErrorMessage {
-        status: StatusCode::NOT_FOUND.as_u16(),
-        message,
-        code: None,
-    }
+    AppError::not_found_error(message)
 }
 
-impl Responder for ErrorMessage {
+impl Responder for AppError {
     type Error = Error;
     type Future = Ready<Result<HttpResponse, Error>>;
 
     fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-        let body = serde_json::to_string(&self).unwrap();
-
-        ready(Ok(HttpResponse::NotFound()
-            .content_type("application/json")
-            .body(body)))
+        self.error_response().respond_to(_req)
     }
 }
