@@ -1,5 +1,4 @@
-articles
-----
+# articles
 
 ## Features
 - Simple get request
