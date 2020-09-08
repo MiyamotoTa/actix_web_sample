@@ -1,14 +1,19 @@
-use diesel::{insert_into, ExpressionMethods, QueryResult, RunQueryDsl};
+use sqlx::query::Query;
 
 use crate::app::v1::users::dto::post_users_request::PostUsersRequest;
 use crate::app::AppState;
 
-pub(crate) fn insert_user(request: &PostUsersRequest, state: &AppState) -> QueryResult<usize> {
-    use crate::schema::users::dsl::*;
-    insert_into(users)
-        .values((
-            name.eq(request.name.clone()),
-            email.eq(request.email.clone()),
-        ))
-        .execute(&state.pool.get().unwrap())
+pub(crate) async fn insert_user(
+    request: &PostUsersRequest,
+    state: &AppState,
+) -> Result<(), sqlx::Error> {
+    sqlx::query_file!(
+        "queries/v1/users/insert_users.sql",
+        request.name,
+        request.email
+    )
+    .execute(&state.pool)
+    .await?;
+
+    Ok(())
 }

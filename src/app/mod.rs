@@ -1,12 +1,12 @@
 use std::env;
 
 use actix_web::{middleware, web, App, HttpServer};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::MysqlConnection;
 use dotenv::dotenv;
 use env_logger::Env;
 use slog::{o, Drain, Logger};
 use slog_term;
+use sqlx::mysql::MySqlPoolOptions;
+use sqlx::{MySql, Pool};
 
 mod error;
 mod routes;
@@ -20,7 +20,7 @@ fn configure_log() -> Logger {
 }
 
 pub(crate) struct AppState {
-    pool: Pool<ConnectionManager<MysqlConnection>>,
+    pool: Pool<MySql>,
     log: Logger,
 }
 
@@ -29,9 +29,11 @@ pub(crate) async fn run() -> std::io::Result<()> {
     env_logger::from_env(Env::default().default_filter_or("info")).init();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set...");
-    let manager = ConnectionManager::<MysqlConnection>::new(database_url);
-    let pool = Pool::builder()
-        .build(manager)
+
+    let pool = MySqlPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await
         .expect("Failed to create pool...");
 
     let log = configure_log();
