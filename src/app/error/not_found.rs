@@ -1,7 +1,7 @@
 use actix_web::{Error, HttpRequest, HttpResponse, Responder, ResponseError};
 use futures::future::Ready;
 
-use crate::app::error::error::AppError;
+use crate::app::error::AppError;
 
 pub(crate) async fn handler(req: HttpRequest) -> impl Responder {
     let message = format!(
