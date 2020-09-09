@@ -4,7 +4,6 @@ use actix_web::{middleware, web, App, HttpServer};
 use dotenv::dotenv;
 use env_logger::Env;
 use slog::{o, Drain, Logger};
-use slog_term;
 use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, Pool};
 
