@@ -7,6 +7,7 @@ use slog::{o, Drain, Logger};
 use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, Pool};
 
+mod config;
 mod error;
 mod routes;
 mod v1;
@@ -25,13 +26,14 @@ pub(crate) struct AppState {
 
 pub(crate) async fn run() -> std::io::Result<()> {
     dotenv().ok();
-    env_logger::from_env(Env::default().default_filter_or("info")).init();
+    let config = crate::app::config::Config::from_env().unwrap();
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set...");
+    // Access Log
+    env_logger::from_env(Env::default().default_filter_or("info")).init();
 
     let pool = MySqlPoolOptions::new()
         .max_connections(5)
-        .connect(&database_url)
+        .connect(&config.database_url)
         .await
         .expect("Failed to create pool...");
 
@@ -48,7 +50,7 @@ pub(crate) async fn run() -> std::io::Result<()> {
             .wrap(middleware::NormalizePath)
             .default_service(web::to(error::not_found::handler))
     })
-    .bind("127.0.0.1:8088")?
+    .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()
     .await
 }
