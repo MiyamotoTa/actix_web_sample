@@ -7,7 +7,11 @@ pub(crate) fn routes(app: &mut web::ServiceConfig) {
     app.service(
         web::scope("api").service(
             web::scope("v1")
-                .service(web::scope("users").service(users_handler::create))
+                .service(
+                    web::scope("users")
+                        .service(users_handler::create)
+                        .service(users_handler::find_by_id),
+                )
                 .service(
                     web::scope("articles")
                         .service(web::resource("/").route(web::get().to(articles_handler::index)))

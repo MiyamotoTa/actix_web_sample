@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpResponse, Responder};
 use slog::{crit, o};
 
 use crate::app::error::AppError;
@@ -23,6 +23,22 @@ pub(crate) async fn create(
         })?;
 
     let user = users_service::find_by_email(request.email.as_str(), state.deref())
+        .await
+        .map_err(|err| {
+            let sub_log = log.new(o!("cause" => err.to_string()));
+            crit!(sub_log, "Failed to find user");
+            AppError::db_error(err)
+        })?;
+    Ok(HttpResponse::Ok().json(user))
+}
+
+#[get("/{id}/")]
+pub(crate) async fn find_by_id(
+    state: web::Data<AppState>,
+    path: web::Path<u64>,
+) -> Result<impl Responder, AppError> {
+    let log = state.log.new(o!("handler" => "user_handler.find_by_id"));
+    let user = users_service::find_by_id(path.0, state.deref())
         .await
         .map_err(|err| {
             let sub_log = log.new(o!("cause" => err.to_string()));

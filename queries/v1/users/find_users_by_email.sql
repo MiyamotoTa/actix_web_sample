@@ -1,1 +1,1 @@
-SELECT * FROM users WHERE email = ? LIMIT 1;
+SELECT * FROM users WHERE email = ?;

@@ -11,6 +11,13 @@ pub(crate) async fn create(request: &PostUsersRequest, state: &AppState) -> Resu
     Ok(())
 }
 
+pub(crate) async fn find_by_id(id: u64, state: &AppState) -> Result<User, AppError> {
+    let user = user_repository::find_by_id(id, state)
+        .await
+        .map_err(AppError::db_error)?;
+    Ok(user)
+}
+
 pub(crate) async fn find_by_email(email: &str, state: &AppState) -> Result<User, AppError> {
     let user = user_repository::find_by_email(email, state)
         .await
