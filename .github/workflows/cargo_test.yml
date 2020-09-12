@@ -9,14 +9,12 @@ jobs:
     services:
       mysql:
         image: mysql:5.7
-        options: --health-cmd "mysqladmin ping -h 127.0.0.1 -P 13306" --health-interval 20s --health-timeout 10s --health-retries 10
+        options: --health-cmd "mysqladmin ping" --health-interval 20s --health-timeout 10s --health-retries 10
         env:
           MYSQL_CONTAINER_NAME: actix_web_sample_db
-          MYSQL_USER_NAME: root
-          MYSQL_PASSWORD: example
           MYSQL_DATABASE: actix_web_sample
         ports:
-          - 13306:3306
+          - 3306
 
     steps:
       - uses: actions/checkout@v2
@@ -25,9 +23,9 @@ jobs:
       - name: Run migrations
         run: diesel migration run
         env:
-          DATABASE_URL: mysql://root:example@localhost:13306/actix_web_sample
+          DATABASE_URL: mysql://root:root@localhost:3306/actix_web_sample
       - name: Copy .env file
-        run: cp .env.example .env
+        run: cp .env.github .env
       - name: Run build
         run: cargo build --verbose
       - name: Run tests
