@@ -100,3 +100,63 @@ impl ResponseError for AppError {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn not_found_error_should_be_return_default_message() {
+        let error = AppError {
+            message: None,
+            cause: None,
+            error_type: AppErrorType::NotFoundError,
+        };
+
+        assert_eq!(
+            error.message(),
+            "The requested item was not found".to_string()
+        )
+    }
+
+    #[test]
+    fn un_processable_entity_error_should_be_return_default_message() {
+        let error = AppError {
+            message: None,
+            cause: None,
+            error_type: AppErrorType::UnProcessableEntityError,
+        };
+
+        assert_eq!(error.message(), "Validation failed".to_string())
+    }
+
+    #[test]
+    fn db_error_should_be_return_default_message() {
+        let error = AppError {
+            message: None,
+            cause: None,
+            error_type: AppErrorType::DbError,
+        };
+
+        assert_eq!(
+            error.message(),
+            "An unexpected error has occurred".to_string()
+        )
+    }
+
+    #[test]
+    fn custom_message_should_be_shown() {
+        let custom_message = "Unable to create item".to_string();
+        let db_error = AppError {
+            message: Some(custom_message.clone()),
+            cause: None,
+            error_type: AppErrorType::DbError,
+        };
+
+        assert_eq!(
+            db_error.message(),
+            custom_message,
+            "Custom message should be shown"
+        )
+    }
+}

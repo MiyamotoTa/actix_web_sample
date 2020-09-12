@@ -1,0 +1,41 @@
+name: Cargo Test
+
+on: [push]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        options: --health-cmd "mysqladmin ping -h 127.0.0.1 -P 3306" --health-interval 5s --health-timeout 2s --health-retries 30
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: actix_web_sample
+        ports:
+          - 3306:3306
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install diesel_cli
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: diesel_cli --no-default-features --features mysql
+      - name: Run migrations
+        run: diesel migration run
+        env:
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/actix_web_sample
+      - name: Copy .env file
+        run: cp .env.github .env
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test

@@ -47,7 +47,7 @@ pub(crate) async fn run() -> std::io::Result<()> {
             })
             .wrap(middleware::Logger::default())
             .configure(routes::routes)
-            .wrap(middleware::NormalizePath)
+            .wrap(middleware::NormalizePath::default())
             .default_service(web::to(error::not_found::handler))
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
