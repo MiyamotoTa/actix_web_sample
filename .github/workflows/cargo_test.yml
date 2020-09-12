@@ -23,7 +23,7 @@ jobs:
       - name: Run migrations
         run: diesel migration run
         env:
-          DATABASE_URL: mysql://root:root@localhost:3306/actix_web_sample
+          DATABASE_URL: mysql://root:root@127.0.0.1:3306/actix_web_sample
       - name: Copy .env file
         run: cp .env.github .env
       - name: Run build
