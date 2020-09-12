@@ -6,7 +6,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:5.7
+        options: --health-cmd "mysqladmin ping -h localhost" --health-interval 10s --health-timeout 5s --health-retries 5
+        env:
+          MYSQL_CONTAINER_NAME: actix_web_sample_db
+          MYSQL_USER_NAME: root
+          MYSQL_PASSWORD: example
+          MYSQL_DATABASE: actix_web_sample
+        ports:
+          - 13306:3306
+
     steps:
       - uses: actions/checkout@v2
+      - name: Install diesel_cli
+        run: cargo install diesel_cli --no-default-features --features mysql
+      - name: Run migrations
+        run: diesel migration run
+        env:
+          DATABASE_URL: mysql://root:example@localhost:13306/actix_web_sample
+      - name: Copy .env file
+        run: cp .env.example .env
+      - name: Run build
+        run: cargo build --verbose
       - name: Run tests
         run: cargo test --verbose
