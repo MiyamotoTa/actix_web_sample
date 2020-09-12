@@ -10,8 +10,9 @@ pub(crate) mod not_found;
 
 #[derive(Debug)]
 pub enum AppErrorType {
-    DbError,
     NotFoundError,
+    UnProcessableEntityError,
+    DbError,
 }
 
 #[derive(Debug)]
@@ -34,15 +35,12 @@ impl AppError {
                 cause: _,
                 error_type: AppErrorType::NotFoundError,
             } => "The requested item was not found".to_string(),
+            AppError {
+                message: None,
+                cause: _,
+                error_type: AppErrorType::UnProcessableEntityError,
+            } => "Validation failed".to_string(),
             _ => "An unexpected error has occurred".to_string(),
-        }
-    }
-
-    pub fn db_error(error: impl ToString) -> AppError {
-        AppError {
-            message: None,
-            cause: Some(error.to_string()),
-            error_type: AppErrorType::DbError,
         }
     }
 
@@ -51,6 +49,22 @@ impl AppError {
             message: None,
             cause: Some(error.to_string()),
             error_type: AppErrorType::NotFoundError,
+        }
+    }
+
+    pub fn un_processable_entity_error(error: impl ToString) -> AppError {
+        AppError {
+            message: None,
+            cause: Some(error.to_string()),
+            error_type: AppErrorType::UnProcessableEntityError,
+        }
+    }
+
+    pub fn db_error(error: impl ToString) -> AppError {
+        AppError {
+            message: None,
+            cause: Some(error.to_string()),
+            error_type: AppErrorType::DbError,
         }
     }
 }
@@ -63,20 +77,26 @@ impl fmt::Display for AppError {
 
 #[derive(Serialize)]
 pub struct AppErrorResponse {
-    pub error: String,
+    pub code: u16,
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cause: Option<String>,
 }
 
 impl ResponseError for AppError {
     fn status_code(&self) -> StatusCode {
         match self.error_type {
-            AppErrorType::DbError => StatusCode::INTERNAL_SERVER_ERROR,
             AppErrorType::NotFoundError => StatusCode::NOT_FOUND,
+            AppErrorType::UnProcessableEntityError => StatusCode::UNPROCESSABLE_ENTITY,
+            AppErrorType::DbError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
     fn error_response(&self) -> HttpResponse {
         HttpResponse::build(self.status_code()).json(AppErrorResponse {
-            error: self.message(),
+            code: self.status_code().as_u16(),
+            message: self.message(),
+            cause: self.cause.clone(),
         })
     }
 }

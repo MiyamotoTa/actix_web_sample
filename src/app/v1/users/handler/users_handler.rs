@@ -14,20 +14,22 @@ pub(crate) async fn create(
     state: web::Data<AppState>,
 ) -> Result<impl Responder, AppError> {
     let log = state.log.new(o!("handler" => "user_handler.create"));
-    users_service::create(request.deref(), state.deref())
+    let email = request.email.as_str();
+
+    users_service::create(email, request.name.as_str(), state.deref())
         .await
         .map_err(|err| {
             let sub_log = log.new(o!("cause" => err.to_string()));
             crit!(sub_log, "Failed to create user");
-            AppError::db_error(err)
+            err
         })?;
 
-    let user = users_service::find_by_email(request.email.as_str(), state.deref())
+    let user = users_service::find_by_email(email, state.deref())
         .await
         .map_err(|err| {
             let sub_log = log.new(o!("cause" => err.to_string()));
             crit!(sub_log, "Failed to find user");
-            AppError::db_error(err)
+            err
         })?;
     Ok(HttpResponse::Ok().json(user))
 }
@@ -43,7 +45,7 @@ pub(crate) async fn find_by_id(
         .map_err(|err| {
             let sub_log = log.new(o!("cause" => err.to_string()));
             crit!(sub_log, "Failed to find user");
-            AppError::db_error(err)
+            err
         })?;
     Ok(HttpResponse::Ok().json(user))
 }
