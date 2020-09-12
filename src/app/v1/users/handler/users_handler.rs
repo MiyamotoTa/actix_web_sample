@@ -5,7 +5,7 @@ use slog::{crit, o};
 
 use crate::app::error::AppError;
 use crate::app::v1::users::dto::post_users_request::PostUsersRequest;
-use crate::app::v1::users::service::users_service;
+use crate::app::v1::users::service::user_service::{UserService, UserServiceImpl};
 use crate::app::AppState;
 
 #[post("/")]
@@ -16,7 +16,9 @@ pub(crate) async fn create(
     let log = state.log.new(o!("handler" => "user_handler.create"));
     let email = request.email.as_str();
 
-    users_service::create(email, request.name.as_str(), state.deref())
+    let user_service = UserServiceImpl::new(state.deref());
+    user_service
+        .create(email, request.name.as_str())
         .await
         .map_err(|err| {
             let sub_log = log.new(o!("cause" => err.to_string()));
@@ -24,13 +26,11 @@ pub(crate) async fn create(
             err
         })?;
 
-    let user = users_service::find_by_email(email, state.deref())
-        .await
-        .map_err(|err| {
-            let sub_log = log.new(o!("cause" => err.to_string()));
-            crit!(sub_log, "Failed to find user");
-            err
-        })?;
+    let user = user_service.find_by_email(email).await.map_err(|err| {
+        let sub_log = log.new(o!("cause" => err.to_string()));
+        crit!(sub_log, "Failed to find user");
+        err
+    })?;
     Ok(HttpResponse::Ok().json(user))
 }
 
@@ -40,12 +40,12 @@ pub(crate) async fn find_by_id(
     path: web::Path<u64>,
 ) -> Result<impl Responder, AppError> {
     let log = state.log.new(o!("handler" => "user_handler.find_by_id"));
-    let user = users_service::find_by_id(path.0, state.deref())
-        .await
-        .map_err(|err| {
-            let sub_log = log.new(o!("cause" => err.to_string()));
-            crit!(sub_log, "Failed to find user");
-            err
-        })?;
+
+    let user_service = UserServiceImpl::new(state.deref());
+    let user = user_service.find_by_id(path.0).await.map_err(|err| {
+        let sub_log = log.new(o!("cause" => err.to_string()));
+        crit!(sub_log, "Failed to find user");
+        err
+    })?;
     Ok(HttpResponse::Ok().json(user))
 }
