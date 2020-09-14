@@ -1,1 +1,1 @@
-pub(crate) mod users_service;
+pub(crate) mod user_service;
