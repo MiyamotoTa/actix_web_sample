@@ -4,8 +4,7 @@ use slog::{error, o, Logger};
 
 use crate::app::error::AppError;
 use crate::app::v1::users::model::user::User;
-use crate::app::v1::users::repository::user_repository::{UserRepository, UserRepositoryImpl};
-use crate::app::AppState;
+use crate::app::v1::users::repository::user_repository::UserRepository;
 
 #[async_trait]
 pub(crate) trait UserService {
@@ -15,15 +14,15 @@ pub(crate) trait UserService {
 }
 
 pub(crate) struct UserServiceImpl<'user_service> {
-    user_repository: UserRepositoryImpl<'user_service>,
+    user_repository: &'user_service dyn UserRepository,
     log: Logger,
 }
 
 impl UserServiceImpl<'_> {
-    pub(crate) fn new(state: &AppState) -> UserServiceImpl {
+    pub(crate) fn new(user_repository: &dyn UserRepository, log: Logger) -> UserServiceImpl {
         UserServiceImpl {
-            user_repository: UserRepositoryImpl::new(&state.pool),
-            log: state.log.new(o!("service"=>"UserServiceImpl")),
+            user_repository,
+            log: log.new(o!("service"=>"UserServiceImpl")),
         }
     }
 }
