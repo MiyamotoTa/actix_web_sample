@@ -69,30 +69,61 @@ impl UserService for UserServiceImpl<'_> {
 }
 
 #[cfg(test)]
-mod tests {
+mod find_by_email_tests {
+
+    use chrono::NaiveDate;
+    use mockall::predicate::{eq, ne};
+
     use crate::app::v1::users::repository::user_repository::MockUserRepository as UserRepository;
 
     use super::*;
 
+    fn log() -> slog::Logger {
+        crate::app::configure_log()
+    }
+
+    fn dummy_user() -> User {
+        User {
+            id: 1,
+            name: "mock_user".to_string(),
+            email: "mock@example.com".to_string(),
+            created_at: NaiveDate::from_ymd(2000, 1, 2).and_hms(3, 4, 5),
+            updated_at: NaiveDate::from_ymd(2006, 7, 8).and_hms(9, 10, 11),
+        }
+    }
+
     #[actix_rt::test]
-    async fn test() {
+    async fn should_return_correct_value() {
         let email = "mock@example.com";
-
         let mut mock = UserRepository::default();
-        mock.expect_find_by_email().returning(move |_| {
-            Ok(User {
-                id: 1,
-                name: "mock_user".to_string(),
-                email: email.to_string(),
-                created_at: chrono::Utc::now().naive_utc(),
-                updated_at: chrono::Utc::now().naive_utc(),
-            })
-        });
+        mock.expect_find_by_email()
+            .with(eq(email))
+            .returning(move |_| Ok(dummy_user()));
 
-        let log = crate::app::configure_log();
-
-        let user_service = UserServiceImpl::new(&mock, log);
+        let user_service = UserServiceImpl::new(&mock, log());
         let actual = user_service.find_by_email(email).await.unwrap();
-        assert_eq!(actual.email, email)
+        assert_eq!(actual, dummy_user());
+    }
+
+    #[actix_rt::test]
+    async fn should_throw_error() {
+        let email = "mock@example.com";
+        let mut mock = UserRepository::default();
+        mock.expect_find_by_email()
+            .with(ne(email))
+            .returning(move |_| Err(sqlx::Error::RowNotFound));
+
+        let user_service = UserServiceImpl::new(&mock, log());
+        let actual = user_service
+            .find_by_email("mock_mock@example.com")
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(
+            actual,
+            AppError::db_error(
+                "no rows returned by a query that expected to return at least one row"
+            )
+        );
     }
 }

@@ -8,14 +8,14 @@ use serde::Serialize;
 
 pub(crate) mod not_found;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AppErrorType {
     NotFoundError,
     UnProcessableEntityError,
     DbError,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct AppError {
     pub message: Option<String>,
     pub cause: Option<String>,
