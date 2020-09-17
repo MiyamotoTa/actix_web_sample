@@ -1,8 +1,11 @@
 use async_trait::async_trait;
+#[cfg(test)]
+use mockall::automock;
 use sqlx::{MySql, Pool};
 
 use crate::app::v1::users::model::user::User;
 
+#[cfg_attr(test, automock)]
 #[async_trait]
 pub(crate) trait UserRepository: Sync {
     async fn create(&self, email: &str, name: &str) -> Result<(), sqlx::Error>;

@@ -67,3 +67,32 @@ impl UserService for UserServiceImpl<'_> {
         Ok(user)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::app::v1::users::repository::user_repository::MockUserRepository as UserRepository;
+
+    use super::*;
+
+    #[actix_rt::test]
+    async fn test() {
+        let email = "mock@example.com";
+
+        let mut mock = UserRepository::default();
+        mock.expect_find_by_email().returning(move |_| {
+            Ok(User {
+                id: 1,
+                name: "mock_user".to_string(),
+                email: email.to_string(),
+                created_at: chrono::Utc::now().naive_utc(),
+                updated_at: chrono::Utc::now().naive_utc(),
+            })
+        });
+
+        let log = crate::app::configure_log();
+
+        let user_service = UserServiceImpl::new(&mock, log);
+        let actual = user_service.find_by_email(email).await.unwrap();
+        assert_eq!(actual.email, email)
+    }
+}
