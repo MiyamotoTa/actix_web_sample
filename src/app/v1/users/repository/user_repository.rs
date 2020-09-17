@@ -4,7 +4,7 @@ use sqlx::{MySql, Pool};
 use crate::app::v1::users::model::user::User;
 
 #[async_trait]
-pub(crate) trait UserRepository {
+pub(crate) trait UserRepository: Sync {
     async fn create(&self, email: &str, name: &str) -> Result<(), sqlx::Error>;
     async fn find_by_id(&self, id: u64) -> Result<User, sqlx::Error>;
     async fn find_by_email(&self, email: &str) -> Result<User, sqlx::Error>;
