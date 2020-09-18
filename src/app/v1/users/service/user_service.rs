@@ -69,6 +69,79 @@ impl UserService for UserServiceImpl<'_> {
 }
 
 #[cfg(test)]
+mod create_tests {
+    use crate::app::v1::users::repository::user_repository::MockUserRepository as UserRepository;
+
+    use super::*;
+
+    fn log() -> slog::Logger {
+        crate::app::configure_log()
+    }
+
+    #[actix_rt::test]
+    async fn should_throw_un_processable_entity_error() {
+        let mock = UserRepository::default();
+        let user_service = UserServiceImpl::new(&mock, log());
+
+        let name = "dummy_name";
+        let actual = user_service.create("aaa", name).await.err().unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+
+        let actual = user_service.create("aaa@", name).await.err().unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+
+        let actual = user_service
+            .create("@example.com", name)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+
+        let actual = user_service
+            .create("aaa@example", name)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+
+        let actual = user_service
+            .create("aaa.@example.com", name)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+    }
+
+    #[actix_rt::test]
+    async fn should_return_correct_value() {
+        let mut mock = UserRepository::default();
+        mock.expect_create().returning(move |_, _| Ok(()));
+
+        let user_service = UserServiceImpl::new(&mock, log());
+        let actual = user_service
+            .create("example@example.com", "dummy_name")
+            .await
+            .unwrap();
+        assert_eq!(actual, ());
+    }
+}
+
+#[cfg(test)]
 mod find_by_id_tests {
     use chrono::NaiveDate;
     use mockall::predicate::{eq, ne};
