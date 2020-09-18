@@ -69,8 +69,60 @@ impl UserService for UserServiceImpl<'_> {
 }
 
 #[cfg(test)]
-mod find_by_email_tests {
+mod find_by_id_tests {
+    use chrono::NaiveDate;
+    use mockall::predicate::{eq, ne};
 
+    use crate::app::v1::users::repository::user_repository::MockUserRepository as UserRepository;
+
+    use super::*;
+
+    fn log() -> slog::Logger {
+        crate::app::configure_log()
+    }
+
+    fn dummy_user() -> User {
+        User {
+            id: 1,
+            name: "mock_user".to_string(),
+            email: "mock@example.com".to_string(),
+            created_at: NaiveDate::from_ymd(2000, 1, 2).and_hms(3, 4, 5),
+            updated_at: NaiveDate::from_ymd(2006, 7, 8).and_hms(9, 10, 11),
+        }
+    }
+
+    #[actix_rt::test]
+    async fn should_return_correct_value() {
+        let mut mock = UserRepository::default();
+        mock.expect_find_by_id()
+            .with(eq(1u64))
+            .returning(move |_| Ok(dummy_user()));
+
+        let user_service = UserServiceImpl::new(&mock, log());
+        let actual = user_service.find_by_id(1u64).await.unwrap();
+        assert_eq!(actual, dummy_user());
+    }
+
+    #[actix_rt::test]
+    async fn should_throw_error() {
+        let mut mock = UserRepository::default();
+        mock.expect_find_by_id()
+            .with(ne(1))
+            .returning(move |_| Err(sqlx::Error::RowNotFound));
+
+        let user_service = UserServiceImpl::new(&mock, log());
+        let actual = user_service.find_by_id(9999u64).await.err().unwrap();
+        assert_eq!(
+            actual,
+            AppError::db_error(
+                "no rows returned by a query that expected to return at least one row"
+            )
+        );
+    }
+}
+
+#[cfg(test)]
+mod find_by_email_tests {
     use chrono::NaiveDate;
     use mockall::predicate::{eq, ne};
 
