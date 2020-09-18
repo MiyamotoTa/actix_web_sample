@@ -4,8 +4,7 @@ use slog::{error, o, Logger};
 
 use crate::app::error::AppError;
 use crate::app::v1::users::model::user::User;
-use crate::app::v1::users::repository::user_repository::{UserRepository, UserRepositoryImpl};
-use crate::app::AppState;
+use crate::app::v1::users::repository::user_repository::UserRepository;
 
 #[async_trait]
 pub(crate) trait UserService {
@@ -15,15 +14,15 @@ pub(crate) trait UserService {
 }
 
 pub(crate) struct UserServiceImpl<'user_service> {
-    user_repository: UserRepositoryImpl<'user_service>,
+    user_repository: &'user_service dyn UserRepository,
     log: Logger,
 }
 
 impl UserServiceImpl<'_> {
-    pub(crate) fn new(state: &AppState) -> UserServiceImpl {
+    pub(crate) fn new(user_repository: &dyn UserRepository, log: Logger) -> UserServiceImpl {
         UserServiceImpl {
-            user_repository: UserRepositoryImpl::new(&state.pool),
-            log: state.log.new(o!("service"=>"UserServiceImpl")),
+            user_repository,
+            log: log.new(o!("service"=>"UserServiceImpl")),
         }
     }
 }
@@ -66,5 +65,190 @@ impl UserService for UserServiceImpl<'_> {
             .await
             .map_err(AppError::db_error)?;
         Ok(user)
+    }
+}
+
+#[cfg(test)]
+mod create_tests {
+    use crate::app::v1::users::repository::user_repository::MockUserRepository as UserRepository;
+
+    use super::*;
+
+    fn log() -> slog::Logger {
+        crate::app::configure_log()
+    }
+
+    #[actix_rt::test]
+    async fn should_throw_un_processable_entity_error() {
+        let mock = UserRepository::default();
+        let user_service = UserServiceImpl::new(&mock, log());
+
+        let name = "dummy_name";
+        let actual = user_service.create("aaa", name).await.err().unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+
+        let actual = user_service.create("aaa@", name).await.err().unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+
+        let actual = user_service
+            .create("@example.com", name)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+
+        let actual = user_service
+            .create("aaa@example", name)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+
+        let actual = user_service
+            .create("aaa.@example.com", name)
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(
+            actual,
+            AppError::un_processable_entity_error("Invalid e-mail format")
+        );
+    }
+
+    #[actix_rt::test]
+    async fn should_return_correct_value() {
+        let mut mock = UserRepository::default();
+        mock.expect_create().returning(move |_, _| Ok(()));
+
+        let user_service = UserServiceImpl::new(&mock, log());
+        let actual = user_service
+            .create("example@example.com", "dummy_name")
+            .await
+            .unwrap();
+        assert_eq!(actual, ());
+    }
+}
+
+#[cfg(test)]
+mod find_by_id_tests {
+    use chrono::NaiveDate;
+    use mockall::predicate::{eq, ne};
+
+    use crate::app::v1::users::repository::user_repository::MockUserRepository as UserRepository;
+
+    use super::*;
+
+    fn log() -> slog::Logger {
+        crate::app::configure_log()
+    }
+
+    fn dummy_user() -> User {
+        User {
+            id: 1,
+            name: "mock_user".to_string(),
+            email: "mock@example.com".to_string(),
+            created_at: NaiveDate::from_ymd(2000, 1, 2).and_hms(3, 4, 5),
+            updated_at: NaiveDate::from_ymd(2006, 7, 8).and_hms(9, 10, 11),
+        }
+    }
+
+    #[actix_rt::test]
+    async fn should_return_correct_value() {
+        let mut mock = UserRepository::default();
+        mock.expect_find_by_id()
+            .with(eq(1u64))
+            .returning(move |_| Ok(dummy_user()));
+
+        let user_service = UserServiceImpl::new(&mock, log());
+        let actual = user_service.find_by_id(1u64).await.unwrap();
+        assert_eq!(actual, dummy_user());
+    }
+
+    #[actix_rt::test]
+    async fn should_throw_error() {
+        let mut mock = UserRepository::default();
+        mock.expect_find_by_id()
+            .with(ne(1))
+            .returning(move |_| Err(sqlx::Error::RowNotFound));
+
+        let user_service = UserServiceImpl::new(&mock, log());
+        let actual = user_service.find_by_id(9999u64).await.err().unwrap();
+        assert_eq!(
+            actual,
+            AppError::db_error(
+                "no rows returned by a query that expected to return at least one row"
+            )
+        );
+    }
+}
+
+#[cfg(test)]
+mod find_by_email_tests {
+    use chrono::NaiveDate;
+    use mockall::predicate::{eq, ne};
+
+    use crate::app::v1::users::repository::user_repository::MockUserRepository as UserRepository;
+
+    use super::*;
+
+    fn log() -> slog::Logger {
+        crate::app::configure_log()
+    }
+
+    fn dummy_user() -> User {
+        User {
+            id: 1,
+            name: "mock_user".to_string(),
+            email: "mock@example.com".to_string(),
+            created_at: NaiveDate::from_ymd(2000, 1, 2).and_hms(3, 4, 5),
+            updated_at: NaiveDate::from_ymd(2006, 7, 8).and_hms(9, 10, 11),
+        }
+    }
+
+    #[actix_rt::test]
+    async fn should_return_correct_value() {
+        let email = "mock@example.com";
+        let mut mock = UserRepository::default();
+        mock.expect_find_by_email()
+            .with(eq(email))
+            .returning(move |_| Ok(dummy_user()));
+
+        let user_service = UserServiceImpl::new(&mock, log());
+        let actual = user_service.find_by_email(email).await.unwrap();
+        assert_eq!(actual, dummy_user());
+    }
+
+    #[actix_rt::test]
+    async fn should_throw_error() {
+        let email = "mock@example.com";
+        let mut mock = UserRepository::default();
+        mock.expect_find_by_email()
+            .with(ne(email))
+            .returning(move |_| Err(sqlx::Error::RowNotFound));
+
+        let user_service = UserServiceImpl::new(&mock, log());
+        let actual = user_service
+            .find_by_email("mock_mock@example.com")
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(
+            actual,
+            AppError::db_error(
+                "no rows returned by a query that expected to return at least one row"
+            )
+        );
     }
 }
